@@ -1,0 +1,50 @@
+Question - Build a CI/CD pipeline for a new application that deploys code to an AWS EC2 instance using Jenkins. Write a script for this job. 
+
+
+
+pipeline {
+  agent any
+
+  stages {
+    stage('Build') {
+      steps {
+        // Fetch code from version control system (e.g., Git)
+        git 'https://github.com/your-repo.git'
+        
+        // Build your application (e.g., compile code, run tests)
+        // Replace the following command with your build commands
+        sh 'mvn clean package'
+      }
+    }
+
+    stage('Deploy') {
+      environment {
+        // Define your AWS credentials and region
+        AWS_ACCESS_KEY_ID = credentials('aws-access-key-id')
+        AWS_SECRET_ACCESS_KEY = credentials('aws-secret-access-key')
+        AWS_REGION = 'us-west-2'
+        
+        // Define other deployment variables
+        EC2_INSTANCE = 'your-ec2-instance-ip'
+        S3_BUCKET = 'your-s3-bucket-name'
+      }
+
+      steps {
+        // Install AWS CLI
+        sh 'pip install awscli'
+
+        // Package your application artifacts
+        sh "aws s3 cp target/my-app.jar s3://${S3_BUCKET}/"
+
+        // Connect to EC2 instance and deploy the application
+        sshagent(credentials: ['your-ssh-key-credential-id']) {
+          sh "ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} 'aws s3 cp s3://${S3_BUCKET}/my-app.jar ~/'"
+          sh "ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} 'sudo systemctl stop my-app.service'"
+          sh "ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} 'sudo mv ~/my-app.jar /opt/my-app/'"
+          sh "ssh -o StrictHostKeyChecking=no ec2-user@${EC2_INSTANCE} 'sudo systemctl start my-app.service'"
+        }
+      }
+    }
+  }
+}
+

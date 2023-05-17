@@ -1,0 +1,75 @@
+# Question - Write a terraform script to create two EC2 instances in a new VPC with firewall rules to allow traffic from port 80. Create a load balancer and attach both the instances to it. 
+
+# Configure AWS provider
+provider "aws" {
+  access_key = "YOUR_ACCESS_KEY"
+  secret_key = "YOUR_SECRET_KEY"
+  region     = "us-west-2"  # Update with your desired region
+}
+
+# Create a VPC
+resource "aws_vpc" "my_vpc" {
+  cidr_block = "10.0.0.0/16"
+}
+
+# Create an internet gateway and attach it to the VPC
+resource "aws_internet_gateway" "my_igw" {
+  vpc_id = aws_vpc.my_vpc.id
+}
+
+# Create a subnet within the VPC
+resource "aws_subnet" "my_subnet" {
+  vpc_id     = aws_vpc.my_vpc.id
+  cidr_block = "10.0.0.0/24"
+}
+
+# Create a security group allowing inbound traffic on port 80
+resource "aws_security_group" "my_sg" {
+  vpc_id = aws_vpc.my_vpc.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+# Create EC2 instances
+resource "aws_instance" "my_instance_1" {
+  ami           = "ami-0c94855ba95c71c99"  # Update with your desired AMI ID
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.my_subnet.id
+  vpc_security_group_ids = [aws_security_group.my_sg.id]
+}
+
+resource "aws_instance" "my_instance_2" {
+  ami           = "ami-0c94855ba95c71c99"  # Update with your desired AMI ID
+  instance_type = "t2.micro"
+  subnet_id     = aws_subnet.my_subnet.id
+  vpc_security_group_ids = [aws_security_group.my_sg.id]
+}
+
+# Create a load balancer
+resource "aws_lb" "my_lb" {
+  name               = "my-load-balancer"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.my_sg.id]
+
+  subnets = [aws_subnet.my_subnet.id]
+}
+
+# Attach EC2 instances to the load balancer target group
+resource "aws_lb_target_group_attachment" "my_lb_attachments" {
+  target_group_arn = aws_lb.my_lb.arn
+  target_id        = aws_instance.my_instance_1.id
+  port             = 80
+}
+
+resource "aws_lb_target_group_attachment" "my_lb_attachments_2" {
+  target_group_arn = aws_lb.my_lb.arn
+  target_id        = aws_instance.my_instance_2.id
+  port             = 80
+}
+

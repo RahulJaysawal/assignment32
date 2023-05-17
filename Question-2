@@ -1,0 +1,37 @@
+Question - You are a DevOps engineer working for a company that hosts a popular website. The website is hosted on an EC2 instance in Amazon EC2. You need to create a CloudWatch alarm that triggers an alert when the CPU usage of the EC2 instance exceeds 80% for five consecutive minutes. Write a Python script for this. 
+
+
+
+import boto3
+
+# Get the EC2 instance ID
+instance_id = "i-0123456789abcdef0"
+
+# Create a CloudWatch client
+client = boto3.client("cloudwatch")
+
+# Create an alarm
+alarm_definition = {
+    "AlarmName": "CPUUsageAlarm",
+    "AlarmDescription": "Alarms when CPU usage exceeds 80% for 5 minutes",
+    "MetricName": "CPUUtilization",
+    "Namespace": "AWS/EC2",
+    "Dimensions": [
+        {
+            "Name": "InstanceId",
+            "Value": instance_id
+        }
+    ],
+    "Statistic": "Average",
+    "Period": 60,
+    "EvaluationPeriods": 5,
+    "Threshold": 80,
+    "ComparisonOperator": "GreaterThanThreshold",
+    "AlarmActions": [
+        "arn:aws:sns:us-east-1:123456789012:my-topic"
+    ]
+}
+
+# Create the alarm
+client.put_metric_alarm(AlarmDefinition=alarm_definition)
+
